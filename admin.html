@@ -104,7 +104,11 @@
     <div class="card">
       <div class="section-header">
         <div class="card-label" style="margin:0">Active Keys</div>
-        <button class="refresh-btn" onclick="loadKeys()">↻</button>
+        <div style="display:flex;gap:6px">
+          <button class="refresh-btn" onclick="loadKeys()">↻</button>
+          <button class="refresh-btn" style="border-color:var(--red);color:var(--red)" onclick="doDeleteAll()">🗑️ Hapus Semua</button>
+          <button class="refresh-btn" style="border-color:#ff6600;color:#ff6600" onclick="doResetAll()">⚡ Reset Total</button>
+        </div>
       </div>
       <div class="key-list" id="key-list">
         <div class="empty">Loading...</div>
@@ -250,6 +254,33 @@ async function doToggle(key) {
   const data = await api('toggle', {key});
   if(data.ok) loadKeys();
   else alert('Gagal: '+data.error);
+}
+
+async function doResetAll() {
+  if(!confirm('⚠️ RESET TOTAL akan menghapus:\n- Semua key aktif\n- Semua cooldown\n- Semua devkey\n- Semua token\n\nSemua user bisa GET KEY lagi!\n\nLanjutkan?')) return;
+  const data = await api('reset_all');
+  if(data.ok) {
+    document.getElementById('key-list').innerHTML = '<div class="empty">Tidak ada key aktif</div>';
+    document.getElementById('st-keys').textContent = '0';
+    document.getElementById('st-tokens').textContent = '0';
+    document.getElementById('st-cools').textContent = '0';
+    alert('✅ Reset total berhasil! ' + data.deleted + ' data dihapus.\nSemua user sekarang bisa GET KEY lagi.');
+  } else {
+    alert('❌ Gagal: ' + data.error);
+  }
+}
+
+async function doDeleteAll() {
+  const total = document.getElementById('st-keys').textContent;
+  if(!confirm('Hapus SEMUA ' + total + ' key aktif? Tindakan ini tidak bisa dibatalkan!')) return;
+  const data = await api('delete_all');
+  if(data.ok) {
+    document.getElementById('key-list').innerHTML = '<div class="empty">Tidak ada key aktif</div>';
+    loadStats();
+    alert('✅ ' + data.deleted + ' key berhasil dihapus!');
+  } else {
+    alert('❌ Gagal: ' + data.error);
+  }
 }
 
 async function doAdd() {
