@@ -138,6 +138,18 @@
       <div id="token-expire-msg"></div>
     </div>
 
+    <!-- MAX DEVICES CONFIG -->
+    <div class="card">
+      <div class="card-label">Max Devices — Linkvertise Keys</div>
+      <div class="hint" style="margin-bottom:10px">Jumlah device maksimal per key yang di-generate via Linkvertise. Default: 1.</div>
+      <div id="cur-max-devices" style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--accent);margin-bottom:10px">Loading...</div>
+      <div class="dur-row">
+        <input type="number" id="inp-maxdev-global" placeholder="Max Devices" value="1" min="1" max="100"/>
+      </div>
+      <button class="btn btn-primary" onclick="doSetMaxDevices()">SAVE MAX DEVICES</button>
+      <div id="max-devices-msg"></div>
+    </div>
+
     <!-- ADD KEY -->
     <div class="card">
       <div class="card-label">Add Key Manually</div>
@@ -350,8 +362,29 @@ async function doSetTokenExpire() {
   }
 }
 
+// ─── Max Devices config ───────────────────────────────────────────
+async function loadMaxDevices() {
+  const data = await api('get_max_devices');
+  if(data.ok) {
+    document.getElementById('cur-max-devices').textContent = 'Current max devices: ' + data.label;
+    document.getElementById('inp-maxdev-global').value = data.maxDevices;
+  }
+}
+async function doSetMaxDevices() {
+  const val = parseInt(document.getElementById('inp-maxdev-global').value) || 1;
+  const msg = document.getElementById('max-devices-msg');
+  msg.innerHTML = '<div class="msg">Saving...</div>';
+  const data = await api('set_max_devices', {maxDevices: val});
+  if(data.ok) {
+    msg.innerHTML = `<div class="msg msg-ok">Max devices updated: ${data.label}</div>`;
+    document.getElementById('cur-max-devices').textContent = 'Current max devices: ' + data.label;
+  } else {
+    msg.innerHTML = `<div class="msg msg-err">Error: ${data.error || 'Failed'}</div>`;
+  }
+}
+
 // ─── Load all ─────────────────────────────────────────────────────
-async function loadAll() { loadStats(); loadKeys(); loadTokenExpire(); }
+async function loadAll() { loadStats(); loadKeys(); loadTokenExpire(); loadMaxDevices(); }
 
 async function loadStats() {
   try {

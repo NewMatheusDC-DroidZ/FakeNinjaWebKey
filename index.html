@@ -109,11 +109,24 @@ const STORE_COOL  = "fn_cooldown";
 let pickedKey = null, cdInterval = null, acInterval = null, coolInterval = null;
 
 function getFingerprint() {
-  const raw = [navigator.userAgent, navigator.language, navigator.hardwareConcurrency || 0,
-    screen.width + "x" + screen.height, new Date().getTimezoneOffset()].join("|");
+  // Cek apakah sudah tersimpan di localStorage agar stable antar reload
+  const stored = localStorage.getItem('fn_fp');
+  if (stored && stored.startsWith('FP')) return stored;
+  // Gunakan komponen yang lebih stabil (hindari userAgent yang bisa berubah di WebView)
+  const raw = [
+    navigator.language || '',
+    navigator.hardwareConcurrency || 0,
+    screen.width + 'x' + screen.height,
+    screen.colorDepth || 0,
+    new Date().getTimezoneOffset()
+  ].join('|');
   let h = 0;
-  for(let i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; }
-  return "FP" + Math.abs(h).toString(16).toUpperCase().padStart(8, "0");
+  for (let i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; }
+  // Tambah suffix random agar unik per browser instance
+  const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const fp = 'FP' + Math.abs(h).toString(16).toUpperCase().padStart(8, '0') + rand;
+  localStorage.setItem('fn_fp', fp);
+  return fp;
 }
 const FP = getFingerprint();
 
