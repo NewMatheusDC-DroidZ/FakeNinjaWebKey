@@ -17,9 +17,10 @@
   .logo p{font-size:9px;color:var(--dim);letter-spacing:3px;margin-top:2px}
   .card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px}
   .card-label{font-size:8px;font-weight:700;letter-spacing:3px;color:var(--dim);text-transform:uppercase;margin-bottom:12px}
-  input{width:100%;background:#000;border:1px solid var(--border);border-radius:6px;padding:12px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;outline:none;margin-bottom:8px}
-  input:focus{border-color:var(--accent)}
+  input,select{width:100%;background:#000;border:1px solid var(--border);border-radius:6px;padding:12px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;outline:none;margin-bottom:8px;appearance:none}
+  input:focus,select:focus{border-color:var(--accent)}
   input::placeholder{color:var(--dim)}
+  select option{background:#0d0d12;color:var(--text)}
   .btn{width:100%;padding:12px;border:none;border-radius:6px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s}
   .btn-primary{background:var(--accent);color:#000}
   .btn-primary:hover{filter:brightness(1.1)}
@@ -42,8 +43,7 @@
   #login-section{}
   #main-section{display:none}
   .row{display:flex;gap:8px}
-  .row input{margin-bottom:0}
-  .row-small{font-size:11px;color:var(--dim);margin-bottom:8px;font-family:'Share Tech Mono',monospace}
+  .row input,.row select{margin-bottom:0}
   .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:1px}
   .badge-on{background:rgba(0,255,136,.15);color:var(--green);border:1px solid var(--green)}
   .badge-off{background:rgba(255,51,85,.15);color:var(--red);border:1px solid var(--red)}
@@ -55,6 +55,11 @@
   .refresh-btn{background:transparent;border:1px solid var(--border);color:var(--dim);padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif;letter-spacing:1px}
   .refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
   .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .dur-label{font-size:9px;color:var(--dim);letter-spacing:2px;margin-bottom:6px;font-family:'Share Tech Mono',monospace}
+  .dur-row{display:flex;gap:8px;margin-bottom:8px}
+  .dur-row input{margin-bottom:0;flex:2}
+  .dur-row select{margin-bottom:0;flex:1;min-width:90px}
+  .hint{font-size:9px;color:var(--dim);font-family:'Share Tech Mono',monospace;margin-bottom:8px;opacity:.7}
 </style>
 </head>
 <body>
@@ -88,13 +93,42 @@
       </div>
     </div>
 
+
+    <!-- TOKEN EXPIRE CONFIG -->
+    <div class="card">
+      <div class="card-label">⏱ Durasi Token Linkvertise</div>
+      <div class="hint" style="margin-bottom:10px">Token adalah link sementara setelah user selesai dari Linkvertise. Default: 1 jam.</div>
+      <div id="cur-token-expire" style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--accent);margin-bottom:10px">🔄 Loading...</div>
+      <div class="dur-row">
+        <input type="number" id="inp-token-durval" placeholder="Nilai" value="1" min="1"/>
+        <select id="inp-token-durunit">
+          <option value="hours">Jam</option>
+          <option value="minutes">Menit</option>
+          <option value="days">Hari</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="doSetTokenExpire()">💾 SIMPAN DURASI TOKEN</button>
+      <div id="token-expire-msg"></div>
+    </div>
+
     <!-- ADD KEY -->
     <div class="card">
       <div class="card-label">Add Key Manual</div>
       <input type="text" id="inp-key" placeholder="NINJA-XXXX-XXXX-XXXX (kosongkan = auto generate)"/>
       <input type="text" id="inp-devid" placeholder="Device ID (opsional)"/>
+
+      <div class="dur-label">⏱ DURASI KEY</div>
+      <div class="dur-row">
+        <input type="number" id="inp-durval" placeholder="Nilai durasi" value="1" min="1"/>
+        <select id="inp-durunit">
+          <option value="hours">Jam</option>
+          <option value="minutes">Menit</option>
+          <option value="days">Hari</option>
+        </select>
+      </div>
+      <div class="hint">Contoh: 30 Menit / 1 Jam / 7 Hari — Key dari Linkvertise default 1 jam</div>
+
       <div class="row" style="margin-bottom:8px">
-        <input type="number" id="inp-hours" placeholder="Durasi (jam)" value="3" style="margin-bottom:0"/>
         <input type="number" id="inp-maxdev" placeholder="Max Device" value="1" min="1" max="100" style="margin-bottom:0"/>
       </div>
       <button class="btn btn-green" onclick="doAdd()">➕ ADD KEY</button>
@@ -169,9 +203,36 @@ async function doLogin() {
   }
 }
 
+
+async function loadTokenExpire() {
+  try {
+    const data = await api('get_token_expire');
+    if(data.ok) {
+      document.getElementById('cur-token-expire').textContent = '⏱ Durasi token saat ini: ' + data.label;
+    }
+  } catch(e) {}
+}
+
+async function doSetTokenExpire() {
+  const durVal  = parseFloat(document.getElementById('inp-token-durval').value) || 1;
+  const durUnit = document.getElementById('inp-token-durunit').value;
+  const msg     = document.getElementById('token-expire-msg');
+  const body    = {};
+  body[durUnit] = durVal;
+  msg.innerHTML = '<div class="msg">⏳ Menyimpan...</div>';
+  const data = await api('set_token_expire', body);
+  if(data.ok) {
+    msg.innerHTML = `<div class="msg msg-ok">✅ Durasi token diubah ke: ${data.label}</div>`;
+    document.getElementById('cur-token-expire').textContent = '⏱ Durasi token saat ini: ' + data.label;
+  } else {
+    msg.innerHTML = `<div class="msg msg-err">❌ ${data.error||'Gagal'}</div>`;
+  }
+}
+
 async function loadAll() {
   loadStats();
   loadKeys();
+  loadTokenExpire();
 }
 
 async function loadStats() {
@@ -200,6 +261,7 @@ async function loadKeys() {
       div.className = 'key-item';
       div.id = 'ki-'+k.key;
       const rem = k.expiryMs - Date.now();
+      const durLabel = k.durationLabel ? `<br>⏳ Durasi: <span style="color:var(--accent)">${k.durationLabel}</span>` : '';
       div.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div class="key-name">${k.key}</div>
@@ -208,7 +270,7 @@ async function loadKeys() {
         <div class="key-meta">
           ⏱ Sisa: <span class="timer" data-expiry="${k.expiryMs}" style="color:${rem<10*60*1000?'var(--red)':rem<30*60*1000?'var(--warn)':'var(--green)'}">${fmtTime(rem)}</span><br>
           📅 Dibuat: <span>${fmtDate(k.createdAt)}</span><br>
-          📱 Device: <span style="color:${k.deviceCount>=k.maxDevices?'var(--red)':'var(--green)'}">${k.deviceCount}/${k.maxDevices}</span><br>
+          📱 Device: <span style="color:${k.deviceCount>=k.maxDevices?'var(--red)':'var(--green)'}">${k.deviceCount}/${k.maxDevices}</span>${durLabel}<br>
           🔑 FP: <span>${k.fp?k.fp.substring(0,12)+'...':'—'}</span>
         </div>
         <div class="key-actions">
@@ -218,7 +280,6 @@ async function loadKeys() {
       `;
       list.appendChild(div);
     });
-    // Start countdown timers
     startTimers();
   } catch(e) {
     list.innerHTML = '<div class="empty" style="color:var(--red)">❌ Gagal load data</div>';
@@ -287,16 +348,23 @@ async function doDeleteAll() {
 async function doAdd() {
   const key       = document.getElementById('inp-key').value.trim().toUpperCase();
   const devId     = document.getElementById('inp-devid').value.trim();
-  const hours     = parseFloat(document.getElementById('inp-hours').value)||3;
-  const maxDevice = parseInt(document.getElementById('inp-maxdev').value)||1;
+  const durVal    = parseFloat(document.getElementById('inp-durval').value) || 1;
+  const durUnit   = document.getElementById('inp-durunit').value; // 'minutes' | 'hours' | 'days'
+  const maxDevice = parseInt(document.getElementById('inp-maxdev').value) || 1;
   const msg       = document.getElementById('add-msg');
 
+  // Build body sesuai satuan
+  const body = { key, devId, maxDevice };
+  body[durUnit] = durVal;
+
   msg.innerHTML = '<div class="msg">⏳ Adding...</div>';
-  const data = await api('add', {key, devId, hours, maxDevice});
+  const data = await api('add', body);
   if(data.ok) {
-    msg.innerHTML = `<div class="msg msg-ok">✅ Key ditambahkan: ${data.key} (${data.hours} jam, max ${data.maxDevices} device)</div>`;
-    document.getElementById('inp-key').value='';
-    document.getElementById('inp-devid').value='';
+    msg.innerHTML = `<div class="msg msg-ok">✅ Key: ${data.key} | Durasi: ${data.durationLabel} | Max ${data.maxDevices} device</div>`;
+    document.getElementById('inp-key').value   = '';
+    document.getElementById('inp-devid').value = '';
+    document.getElementById('inp-durval').value = '1';
+    document.getElementById('inp-durunit').value = 'hours';
     loadKeys();
     loadStats();
   } else {
